@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# Models (prea mari pentru git)
+models/*.pkl
+
+# Data (prea mare pentru git)
+antrenare/*/
+validare/validare/
+testare/
+evaluare/fisiere_solutie/*/
+
+# Keep structure but ignore images
+*.jpg
+*.png
+!detection_*.jpg
+!detection_*.png
+
+# Keep annotations
+!*_annotations.txt
+!*_gt_*.txt
+
+# Outputs
+*.npy
+*.pdf
+precizie_medie_*.png
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+*.iml
