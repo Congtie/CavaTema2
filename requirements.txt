@@ -8,3 +8,6 @@ scikit-learn>=0.24.0
 tqdm>=4.60.0
 matplotlib>=3.3.0
 Pillow>=8.0.0
+
+# YOLO Solution (Bonus 25%)
+ultralytics>=8.0.0
