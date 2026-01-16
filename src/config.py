@@ -84,7 +84,7 @@ SVM_C = 1.0
 # NON-MAXIMUM SUPPRESSION PARAMETERS
 # =============================================================================
 # IoU threshold for NMS (lower = more aggressive suppression)
-NMS_THRESHOLD = 0.3
+NMS_THRESHOLD = 0.2  # Testing more aggressive NMS to reduce false positives
 
 # =============================================================================
 # DATA AUGMENTATION PARAMETERS
@@ -102,7 +102,7 @@ MAX_NEGATIVE_IOU = 0.05
 # DETECTION PARAMETERS
 # =============================================================================
 # Minimum score threshold for detections (global)
-DETECTION_THRESHOLD = 3.5
+DETECTION_THRESHOLD = 3.0  # Minimum score threshold for face detection
 
 # Per-character thresholds (lower for underrepresented classes)
 CHAR_DETECTION_THRESHOLDS = {

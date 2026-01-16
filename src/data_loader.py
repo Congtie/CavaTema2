@@ -136,42 +136,81 @@ def extract_patch(image: np.ndarray, box: Tuple, target_size: Tuple = WINDOW_SIZ
     return patch
 
 
+def augment_patch(patch: np.ndarray) -> List[np.ndarray]:
+    """
+    Apply data augmentation to a face patch.
+
+    Args:
+        patch: Input patch
+
+    Returns:
+        List of augmented patches (includes original + augmented versions)
+    """
+    augmented = [patch]  # Original
+
+    # Horizontal flip (mirror)
+    flipped = cv2.flip(patch, 1)
+    augmented.append(flipped)
+
+    # Small rotations (±5 degrees)
+    h, w = patch.shape[:2]
+    center = (w // 2, h // 2)
+
+    for angle in [-5, 5]:
+        M = cv2.getRotationMatrix2D(center, angle, 1.0)
+        rotated = cv2.warpAffine(patch, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
+        augmented.append(rotated)
+
+    return augmented
+
+
 def extract_positive_patches(
     image_folder: str,
     annotations: Dict[str, List[Tuple]],
-    target_size: Tuple = WINDOW_SIZE
+    target_size: Tuple = WINDOW_SIZE,
+    apply_augmentation: bool = False
 ) -> Tuple[List[np.ndarray], List[int]]:
     """
-    Extract positive patches (faces) from images.
-    
+    Extract positive patches (faces) from images with optional data augmentation.
+
     Args:
         image_folder: Path to folder containing images
         annotations: Dictionary of annotations
         target_size: Target patch size
-        
+        apply_augmentation: If True, apply data augmentation (flip + rotations)
+
     Returns:
         List of patches and their corresponding labels
     """
     patches = []
     labels = []
-    
+
     for img_name, face_boxes in tqdm(annotations.items(), desc="Extracting positive patches"):
         img_path = os.path.join(image_folder, img_name)
-        
+
         if not os.path.exists(img_path):
             continue
-        
+
         image = cv2.imread(img_path)
         if image is None:
             continue
-        
+
         for box in face_boxes:
             patch = extract_patch(image, box, target_size)
             if patch is not None:
-                patches.append(patch)
                 character = box[4] if len(box) > 4 else "unknown"
-                labels.append(CHAR_TO_LABEL.get(character, CHAR_TO_LABEL["unknown"]))
-    
+                label = CHAR_TO_LABEL.get(character, CHAR_TO_LABEL["unknown"])
+
+                if apply_augmentation:
+                    # Apply augmentation: original + flipped + 2 rotations = 4x data
+                    augmented_patches = augment_patch(patch)
+                    for aug_patch in augmented_patches:
+                        patches.append(aug_patch)
+                        labels.append(label)
+                else:
+                    patches.append(patch)
+                    labels.append(label)
+
     return patches, labels
 
 

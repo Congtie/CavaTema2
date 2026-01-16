@@ -131,6 +131,60 @@ def detect_faces_single_scale(
     return detections
 
 
+def filter_detections_by_geometry(
+    detections: List[Tuple[int, int, int, int, float]],
+    image_shape: Tuple[int, int],
+    min_aspect_ratio: float = 0.6,
+    max_aspect_ratio: float = 1.5,
+    min_size: int = 15,
+    max_size: int = 400
+) -> List[Tuple[int, int, int, int, float]]:
+    """
+    Filter detections based on geometric properties to reduce false positives.
+    Faces typically have aspect ratio close to 1:1, while hands/bodies are elongated.
+
+    Args:
+        detections: List of (xmin, ymin, xmax, ymax, score) detections
+        image_shape: (height, width) of the image
+        min_aspect_ratio: Minimum width/height ratio (default 0.6)
+        max_aspect_ratio: Maximum width/height ratio (default 1.5)
+        min_size: Minimum detection size in pixels (default 15)
+        max_size: Maximum detection size in pixels (default 400)
+
+    Returns:
+        Filtered list of detections
+    """
+    filtered = []
+    img_h, img_w = image_shape
+
+    for xmin, ymin, xmax, ymax, score in detections:
+        # Calculate dimensions
+        width = xmax - xmin
+        height = ymax - ymin
+
+        # Skip invalid detections
+        if width <= 0 or height <= 0:
+            continue
+
+        # Calculate aspect ratio (width / height)
+        aspect_ratio = width / height
+
+        # Filter by aspect ratio (faces are roughly square)
+        if aspect_ratio < min_aspect_ratio or aspect_ratio > max_aspect_ratio:
+            continue
+
+        # Filter by size (too small = noise, too large = unlikely)
+        if width < min_size or height < min_size:
+            continue
+        if width > max_size or height > max_size:
+            continue
+
+        # Keep detection
+        filtered.append((xmin, ymin, xmax, ymax, score))
+
+    return filtered
+
+
 def detect_faces_multiscale(
     image: np.ndarray,
     classifier,
@@ -140,11 +194,12 @@ def detect_faces_multiscale(
     step_size: int = STEP_SIZE,
     threshold: float = DETECTION_THRESHOLD,
     use_color: bool = False,
-    show_progress: bool = True
+    show_progress: bool = True,
+    apply_filtering: bool = True
 ) -> List[Tuple[int, int, int, int, float]]:
     """
     Detect faces in an image using multi-scale sliding window.
-    
+
     Args:
         image: Input image
         classifier: Trained face detector
@@ -155,7 +210,8 @@ def detect_faces_multiscale(
         threshold: Detection score threshold
         use_color: Whether classifier uses color features
         show_progress: Whether to show progress bar
-        
+        apply_filtering: Whether to apply aspect ratio and size filtering
+
     Returns:
         List of (xmin, ymin, xmax, ymax, score) detections in original image coordinates
     """
@@ -197,7 +253,11 @@ def detect_faces_multiscale(
             orig_xmax = int(xmax / scale)
             orig_ymax = int(ymax / scale)
             all_detections.append((orig_xmin, orig_ymin, orig_xmax, orig_ymax, score))
-    
+
+    # Apply filtering to remove false positives based on geometry
+    if apply_filtering:
+        all_detections = filter_detections_by_geometry(all_detections, image.shape[:2])
+
     return all_detections
 
 
