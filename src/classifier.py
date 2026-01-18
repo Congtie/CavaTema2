@@ -1,8 +1,3 @@
-"""
-SVM Classifier module for face detection and recognition.
-Implements training, saving, loading, and prediction functionality.
-"""
-
 import os
 import pickle
 import numpy as np
@@ -13,47 +8,31 @@ from typing import Tuple, Optional, List
 from tqdm import tqdm
 
 from config import (
-    SVM_C, MODELS_PATH, CHARACTERS, CHAR_TO_LABEL, LABEL_TO_CHAR
+    SVM_C, MODELS_PATH, CHARACTERS, CHAR_TO_LABEL, LABEL_TO_CHAR, RANDOM_SEED
 )
 from feature_extraction import extract_hog_features_batch, extract_combined_features_batch
 
+if RANDOM_SEED is not None:
+    np.random.seed(RANDOM_SEED)
+
 
 class FaceDetector:
-    """
-    SVM-based face detector for Task 1.
-    Binary classification: face vs non-face.
-    """
-    
-    def __init__(self, C: float = SVM_C, use_color: bool = False):
-        """
-        Initialize the face detector.
-        
-        Args:
-            C: SVM regularization parameter
-            use_color: Whether to use color features in addition to HOG
-        """
+
+    def __init__(self, C: float = SVM_C, use_color: bool = False, use_lbp: bool = True):
         self.C = C
         self.use_color = use_color
+        self.use_lbp = use_lbp
         self.classifier = LinearSVC(C=C, max_iter=10000, dual=True)
         self.scaler = StandardScaler()
         self.is_trained = False
-    
+
     def extract_features(self, patches: List[np.ndarray], show_progress: bool = True) -> np.ndarray:
-        """Extract features from patches."""
-        if self.use_color:
-            return extract_combined_features_batch(patches, use_color=True, show_progress=show_progress)
+        if self.use_color or self.use_lbp:
+            return extract_combined_features_batch(patches, use_color=self.use_color, use_lbp=self.use_lbp, show_progress=show_progress)
         else:
             return extract_hog_features_batch(patches, show_progress=show_progress)
     
     def train(self, X_patches: np.ndarray, y: np.ndarray, validate: bool = True):
-        """
-        Train the face detector.
-        
-        Args:
-            X_patches: Array of image patches
-            y: Binary labels (1 for face, 0 for non-face)
-            validate: Whether to perform cross-validation
-        """
         print("Extracting features for training...")
         X_features = self.extract_features(list(X_patches))
         
@@ -72,15 +51,6 @@ class FaceDetector:
         print("Training complete!")
     
     def predict(self, patches: List[np.ndarray]) -> np.ndarray:
-        """
-        Predict whether patches contain faces.
-        
-        Args:
-            patches: List of image patches
-            
-        Returns:
-            Binary predictions (1 for face, 0 for non-face)
-        """
         if not self.is_trained:
             raise RuntimeError("Classifier not trained yet!")
         
@@ -90,15 +60,6 @@ class FaceDetector:
         return self.classifier.predict(X_scaled)
     
     def predict_scores(self, patches: List[np.ndarray]) -> np.ndarray:
-        """
-        Get decision scores for patches.
-        
-        Args:
-            patches: List of image patches
-            
-        Returns:
-            Decision scores (higher = more likely to be face)
-        """
         if not self.is_trained:
             raise RuntimeError("Classifier not trained yet!")
         
@@ -108,15 +69,6 @@ class FaceDetector:
         return self.classifier.decision_function(X_scaled)
     
     def predict_single(self, patch: np.ndarray) -> Tuple[int, float]:
-        """
-        Predict a single patch.
-        
-        Args:
-            patch: Single image patch
-            
-        Returns:
-            (prediction, score) tuple
-        """
         X_features = self.extract_features([patch], show_progress=False)
         X_scaled = self.scaler.transform(X_features)
         
@@ -126,7 +78,6 @@ class FaceDetector:
         return prediction, score
     
     def save(self, path: str = None):
-        """Save the trained model."""
         if path is None:
             os.makedirs(MODELS_PATH, exist_ok=True)
             path = os.path.join(MODELS_PATH, "face_detector.pkl")
@@ -136,62 +87,43 @@ class FaceDetector:
                 'classifier': self.classifier,
                 'scaler': self.scaler,
                 'use_color': self.use_color,
+                'use_lbp': self.use_lbp,
                 'is_trained': self.is_trained
             }, f)
         print(f"Model saved to {path}")
-    
+
     def load(self, path: str = None):
-        """Load a trained model."""
         if path is None:
             path = os.path.join(MODELS_PATH, "face_detector.pkl")
-        
+
         with open(path, 'rb') as f:
             data = pickle.load(f)
-        
+
         self.classifier = data['classifier']
         self.scaler = data['scaler']
         self.use_color = data['use_color']
+        self.use_lbp = data.get('use_lbp', True)
         self.is_trained = data['is_trained']
         print(f"Model loaded from {path}")
 
 
 class CharacterRecognizer:
-    """
-    SVM-based character recognizer for Task 2.
-    Multi-class classification: fred, daphne, shaggy, velma.
-    """
-    
-    def __init__(self, C: float = SVM_C, use_color: bool = True):
-        """
-        Initialize the character recognizer.
-        
-        Args:
-            C: SVM regularization parameter
-            use_color: Whether to use color features (important for character recognition)
-        """
+
+    def __init__(self, C: float = SVM_C, use_color: bool = True, use_lbp: bool = True):
         self.C = C
         self.use_color = use_color
+        self.use_lbp = use_lbp
         self.classifier = LinearSVC(C=C, max_iter=10000, multi_class='ovr', dual=True)
         self.scaler = StandardScaler()
         self.is_trained = False
-    
+
     def extract_features(self, patches: List[np.ndarray], show_progress: bool = True) -> np.ndarray:
-        """Extract features from patches."""
-        if self.use_color:
-            return extract_combined_features_batch(patches, use_color=True, show_progress=show_progress)
+        if self.use_color or self.use_lbp:
+            return extract_combined_features_batch(patches, use_color=self.use_color, use_lbp=self.use_lbp, show_progress=show_progress)
         else:
             return extract_hog_features_batch(patches, show_progress=show_progress)
     
     def train(self, X_patches: np.ndarray, y: np.ndarray, validate: bool = True):
-        """
-        Train the character recognizer.
-        
-        Args:
-            X_patches: Array of face patches
-            y: Character labels (0-3 for main characters, excluding negatives)
-            validate: Whether to perform cross-validation
-        """
-        # Filter out negative samples (label -1) and unknown (label 4)
         valid_mask = (y >= 0) & (y < len(CHARACTERS))
         X_valid = X_patches[valid_mask]
         y_valid = y[valid_mask]
@@ -219,15 +151,6 @@ class CharacterRecognizer:
         print("Training complete!")
     
     def predict(self, patches: List[np.ndarray]) -> np.ndarray:
-        """
-        Predict character for each patch.
-        
-        Args:
-            patches: List of face patches
-            
-        Returns:
-            Character labels (0-3)
-        """
         if not self.is_trained:
             raise RuntimeError("Classifier not trained yet!")
         
@@ -237,15 +160,6 @@ class CharacterRecognizer:
         return self.classifier.predict(X_scaled)
     
     def predict_scores(self, patches: List[np.ndarray]) -> np.ndarray:
-        """
-        Get decision scores for all classes.
-        
-        Args:
-            patches: List of face patches
-            
-        Returns:
-            Decision scores matrix (num_patches, num_classes)
-        """
         if not self.is_trained:
             raise RuntimeError("Classifier not trained yet!")
         
@@ -255,15 +169,6 @@ class CharacterRecognizer:
         return self.classifier.decision_function(X_scaled)
     
     def predict_single(self, patch: np.ndarray) -> Tuple[str, float]:
-        """
-        Predict character for a single patch.
-        
-        Args:
-            patch: Single face patch
-            
-        Returns:
-            (character_name, score) tuple
-        """
         X_features = self.extract_features([patch], show_progress=False)
         X_scaled = self.scaler.transform(X_features)
         
@@ -276,54 +181,42 @@ class CharacterRecognizer:
         return character, float(score)
     
     def save(self, path: str = None):
-        """Save the trained model."""
         if path is None:
             os.makedirs(MODELS_PATH, exist_ok=True)
             path = os.path.join(MODELS_PATH, "character_recognizer.pkl")
-        
+
         with open(path, 'wb') as f:
             pickle.dump({
                 'classifier': self.classifier,
                 'scaler': self.scaler,
                 'use_color': self.use_color,
+                'use_lbp': self.use_lbp,
                 'is_trained': self.is_trained
             }, f)
         print(f"Model saved to {path}")
-    
+
     def load(self, path: str = None):
-        """Load a trained model."""
         if path is None:
             path = os.path.join(MODELS_PATH, "character_recognizer.pkl")
-        
+
         with open(path, 'rb') as f:
             data = pickle.load(f)
-        
+
         self.classifier = data['classifier']
         self.scaler = data['scaler']
         self.use_color = data['use_color']
+        self.use_lbp = data.get('use_lbp', True)
         self.is_trained = data['is_trained']
         print(f"Model loaded from {path}")
 
 
 class CombinedDetector:
-    """
-    Combined face detector and character recognizer.
-    First detects faces (Task 1), then classifies them (Task 2).
-    """
     
     def __init__(self):
         self.face_detector = FaceDetector()
         self.character_recognizer = CharacterRecognizer()
     
     def train(self, X_patches: np.ndarray, y_binary: np.ndarray, y_character: np.ndarray):
-        """
-        Train both detectors.
-        
-        Args:
-            X_patches: Array of image patches
-            y_binary: Binary labels for face detection
-            y_character: Character labels for recognition
-        """
         print("=" * 50)
         print("Training Face Detector (Task 1)")
         print("=" * 50)
@@ -332,29 +225,17 @@ class CombinedDetector:
         print("\n" + "=" * 50)
         print("Training Character Recognizer (Task 2)")
         print("=" * 50)
-        # Only train on positive samples (faces)
         positive_mask = y_binary == 1
         self.character_recognizer.train(X_patches[positive_mask], y_character[positive_mask])
     
     def predict(self, patches: List[np.ndarray]) -> List[Tuple[bool, str, float]]:
-        """
-        Detect and classify faces.
-        
-        Args:
-            patches: List of image patches
-            
-        Returns:
-            List of (is_face, character, score) tuples
-        """
         results = []
         
-        # First, detect faces
         face_predictions = self.face_detector.predict(patches)
         face_scores = self.face_detector.predict_scores(patches)
         
         for i, patch in enumerate(patches):
             if face_predictions[i] == 1:
-                # It's a face, classify character
                 character, char_score = self.character_recognizer.predict_single(patch)
                 results.append((True, character, face_scores[i]))
             else:
@@ -363,7 +244,6 @@ class CombinedDetector:
         return results
     
     def save(self, path: str = None):
-        """Save both models."""
         if path is None:
             path = MODELS_PATH
         os.makedirs(path, exist_ok=True)
@@ -372,7 +252,6 @@ class CombinedDetector:
         self.character_recognizer.save(os.path.join(path, "character_recognizer.pkl"))
     
     def load(self, path: str = None):
-        """Load both models."""
         if path is None:
             path = MODELS_PATH
         
@@ -381,7 +260,6 @@ class CombinedDetector:
 
 
 if __name__ == "__main__":
-    # Test the classifiers
     from data_loader import prepare_training_data
     
     print("Preparing training data...")

@@ -1,11 +1,3 @@
-"""
-Scooby-Doo Face Detection and Recognition System
-
-This package implements a classical computer vision pipeline for:
-- Task 1: Face detection using HOG + SVM + Sliding Window
-- Task 2: Character recognition (Fred, Daphne, Shaggy, Velma)
-"""
-
 from .config import *
 from .data_loader import prepare_training_data, load_test_images
 from .feature_extraction import extract_hog_features, extract_combined_features

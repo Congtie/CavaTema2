@@ -1,25 +1,22 @@
-Your project should include a README file containing the following information:
+1. Libraries required:
 
-1. the libraries required to run the project including the full version of each library.
+numpy>=1.19.0
+opencv-python>=4.5.0
+scikit-image>=0.18.0
+scikit-learn>=0.24.0
+tqdm>=4.60.0
+matplotlib>=3.3.0
+Pillow>=8.0.0
 
-Example:
+2. How to run:
 
-numpy==1.15.4
-opencv_python==4.1.1.26
-scikit_image==0.15.0
-tensorflow_gpu==1.12.0
-Pillow==7.0.0
-scikit_learn==0.22.1
-skimage==0.0
-tensorflow==2.1.0
+Script: RunProject.py
+Command: python RunProject.py
 
-2. how to run your code and where to look for the output files.
+This command trains the models (if not present), runs the inference on validation images, and saves the results.
+The output will be found in 'evaluare/fisiere_solutie/334_Coman_Ioan_Alexandru/task1' and 'evaluare/fisiere_solutie/334_Coman_Ioan_Alexandru/task2'.
 
-
-Here is an example of how to run your code. You can use your own explanation as long as an external user can understand how to run it.
-
-Example:
-
-script: RunProject.py
-function: run_project(input_folder_name), where input_folder_name is the path to the folder containing the images 
-output: the output path is 331_Alexe_Bogdan/task1 and 331_Alexe_Bogdan/task2
+Optional arguments:
+--input <folder>: Specify input folder with images
+--output <folder>: Specify output folder
+--mode <train|test|validate|full>: Specify run mode

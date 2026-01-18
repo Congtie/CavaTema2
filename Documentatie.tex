@@ -1,0 +1,101 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{Tema 2: Detectarea si Recunoasterea Faciala a Personajelor din Scooby-Doo}
+\author{334 Coman Ioan Alexandru}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introducere}
+Acest proiect implementeaza un sistem complet de viziune artificiala pentru detectarea si recunoasterea faciala a personajelor din serialul de animatie Scooby-Doo. Sistemul abordeaza doua sarcini principale:
+\begin{itemize}
+    \item \textbf{Task 1}: Detectarea tuturor fetelor din imagini (binary classification: fata vs. non-fata).
+    \item \textbf{Task 2}: Recunoasterea identitatii personajelor (Fred, Daphne, Shaggy, Velma).
+\end{itemize}
+
+Abordarea utilizata este una clasica, bazata pe tehnica "Sliding Window" (fereastra glisanta) combinata cu extragerea de trasaturi HOG (Histogram of Oriented Gradients) si clasificarea folosind SVM (Support Vector Machines).
+
+\section{Metodologie}
+Pipeline-ul solutiei este structurat in urmatorii pasi:
+
+\subsection{1. Pregatirea Datelor}
+Am implementat functii pentru extragerea patch-urilor pozitive (fete adnotate) si negative (fundal) din setul de antrenare.
+\begin{itemize}
+    \item \textbf{Exemple pozitive}: Extrase direct din adnotari ("ground truth").
+    \item \textbf{Exemple negative}: Generate prin esantionare aleatoare din zonele fara suprapunere semnificativa (IoU $<$ 0.05) cu fetele adnotate. Am folosit tehnica "Hard Negative Mining" implicita prin extragerea a 10 exemple negative per imagine.
+\end{itemize}
+
+\subsection{2. Extragerea Trasaturilor (Features)}
+Pentru reprezentarea imaginilor am folosit descriptorul \textbf{HOG}, care este robust la variatii de iluminare si mici deformari geometrice.
+\begin{itemize}
+    \item \textbf{Dimensiune fereastra}: $64 \times 64$ pixeli.
+    \item \textbf{Parametri HOG}: 9 orientari, celule de $8 \times 8$ px, blocuri de $2 \times 2$ celule.
+    \item Pentru Task 2 (recunoastere), am experimentat si cu \textbf{Histograme de Culoare} (HSV) concatenate cu HOG, deoarece personajele au palete de culori distincte (ex: Fred - portocaliu/albastru, Daphne - mov/portocaliu).
+\end{itemize}
+
+\subsection{3. Clasificarea}
+Am antrenat doi clasificatori liniari SVM (`LinearSVC` din `scikit-learn`):
+\begin{itemize}
+    \item \textbf{Detectorul Facial (Task 1)}: SVM binar antrenat sa distinga intre fete si non-fete.
+    \item \textbf{Recunoasterea Personajelor (Task 2)}: SVM multi-class (One-vs-Rest) antrenat pe cele 4 clase de personaje.
+\end{itemize}
+
+\subsection{4. Detectia Multi-scala (Sliding Window)}
+Pentru a detecta fete de dimensiuni variate, am implementat o piramida de imagini:
+\begin{enumerate}
+    \item Imaginea este redimensionata progresiv cu un factor de scalare (scale factor = 1.05).
+    \item La fiecare scala, o fereastra de $64 \times 64$ gliseaza peste imagine cu un pas (stride) de 8 pixeli.
+    \item Fiecare patch este clasificat de SVM. Daca scorul depaseste un prag (threshold = 3.0), este considerat o detectie.
+\end{enumerate}
+
+\subsection{5. Post-procesare (NMS)}
+Deoarece tehnica sliding window genereaza multe detectii suprapuse pentru aceeasi fata, am aplicat algoritmul \textbf{Non-Maximum Suppression (NMS)}. Acesta pastreaza doar detectia cu scorul maxim dintr-un grup de ferestre suprapuse (IoU $>$ 0.2).
+
+\section{Detalii de Implementare}
+Parametrii finali utilizati in solutie sunt:
+\begin{itemize}
+    \item \textbf{Window Size}: $(64, 64)$
+    \item \textbf{HOG}: Orientations=9, Pixels per cell=$(8,8)$, Cells per block=$(2,2)$
+    \item \textbf{Sliding Window}: Step Size=8px, Scale Factor=1.05
+    \item \textbf{NMS Threshold}: 0.2 (agresiv pentru a elimina duplicatele)
+    \item \textbf{SVM C}: 1.0
+\end{itemize}
+
+\section{Rezultate}
+Evaluarea pe setul de validare a produs urmatoarele rezultate:
+
+\subsection{Task 1: Detectare Faciala}
+\textbf{Average Precision (AP): 0.539} \\
+Sistemul reuseste sa localizeze majoritatea fetelor, dar intampina dificultati la fetele foarte mici sau partial ocluzate.
+
+\subsection{Task 2: Recunoastere Personaje}
+Rezultate per personaj (AP):
+\begin{itemize}
+    \item \textbf{Daphne}: 0.605
+    \item \textbf{Fred}: 0.524
+    \item \textbf{Shaggy}: 0.340
+    \item \textbf{Velma}: 0.688
+\end{itemize}
+\textbf{Mean Average Precision (mAP): 0.539}
+
+Velma si Daphne sunt recunoscute cel mai bine, probabil datorita trasaturilor distinctive (ochelari, par voluminos) si culorilor specifice. Shaggy are scorul cel mai mic, posibil din cauza variatiilor mari in expresii si postura.
+
+\section{Concluzii}
+Solutia bazata pe HOG + SVM "from scratch" a demonstrat capacitatea de a rezolva problema propusa, obtinand un scor mAP rezonabil. Performanta ar putea fi imbunatatita prin:
+\begin{itemize}
+    \item Cresterea numarului de exemple negative ("Hard Negative Mining" iterativ).
+    \item Ajustarea fina a pragurilor de detectie per caracter.
+    \item Utilizarea unor descriptori mai avansati sau retele neuronale (CNN) pentru extragerea trasaturilor.
+\end{itemize}
+
+\end{document}

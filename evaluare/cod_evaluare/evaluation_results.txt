@@ -1,0 +1,22 @@
+(543, 4)
+(543,)
+(543,)
+==================================================
+All faces: Average Precision = 0.551
+==================================================
+(57, 4)
+(57,)
+(57,)
+daphne: Average Precision = 0.594
+(75, 4)
+(75,)
+(75,)
+fred: Average Precision = 0.503
+(74, 4)
+(74,)
+(74,)
+shaggy: Average Precision = 0.382
+(78, 4)
+(78,)
+(78,)
+velma: Average Precision = 0.711
