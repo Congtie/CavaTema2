@@ -20,3 +20,11 @@ Optional arguments:
 --input <folder>: Specify input folder with images
 --output <folder>: Specify output folder
 --mode <train|test|validate|full>: Specify run mode
+
+3. YOLO Solution (Bonus):
+
+The project includes a YOLOv8-based solution located in the 'yolo' directory.
+This solution requires an additional library:
+ultralytics>=8.0.0
+
+To run the YOLO solution, please refer to the instructions in 'yolo/README.md'.

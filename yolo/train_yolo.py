@@ -1,30 +1,15 @@
-"""
-Train YOLOv8 model for Scooby-Doo face detection and recognition.
-"""
 
 import os
 from ultralytics import YOLO
 
-# Paths
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATASET_YAML = os.path.join(BASE_PATH, "yolo", "dataset", "dataset.yaml")
 OUTPUT_PATH = os.path.join(BASE_PATH, "yolo", "runs")
 
 
 def train_yolo(epochs=100, imgsz=640, batch=16, model_size='n'):
-    """
-    Train YOLOv8 model.
-    
-    Args:
-        epochs: Number of training epochs
-        imgsz: Image size for training
-        batch: Batch size
-        model_size: Model size ('n'=nano, 's'=small, 'm'=medium, 'l'=large, 'x'=xlarge)
-    """
-    # Load pretrained YOLOv8 model
     model = YOLO(f'yolov8{model_size}.pt')
     
-    # Train on our dataset
     results = model.train(
         data=DATASET_YAML,
         epochs=epochs,
@@ -32,12 +17,11 @@ def train_yolo(epochs=100, imgsz=640, batch=16, model_size='n'):
         batch=batch,
         project=OUTPUT_PATH,
         name='scooby_doo',
-        patience=20,  # Early stopping
+        patience=20,
         save=True,
         plots=True,
         verbose=True,
         
-        # Data augmentation
         hsv_h=0.015,
         hsv_s=0.7,
         hsv_v=0.4,

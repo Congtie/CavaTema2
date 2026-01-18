@@ -1,19 +1,13 @@
-"""
-Script to convert Scooby-Doo annotations to YOLO format.
-YOLO format: class_id x_center y_center width height (normalized 0-1)
-"""
 
 import os
 import shutil
 from PIL import Image
 from sklearn.model_selection import train_test_split
 
-# Paths
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRAIN_PATH = os.path.join(BASE_PATH, "antrenare")
 OUTPUT_PATH = os.path.join(BASE_PATH, "yolo", "dataset")
 
-# Character to class ID mapping
 CHAR_TO_ID = {
     "fred": 0,
     "daphne": 1,
@@ -25,8 +19,7 @@ CHARACTERS = ["fred", "daphne", "shaggy", "velma"]
 
 
 def parse_annotations():
-    """Parse all annotation files and group by image."""
-    annotations = {}  # image_path -> list of (char, x1, y1, x2, y2)
+    annotations = {} 
     
     for char in CHARACTERS:
         ann_file = os.path.join(TRAIN_PATH, f"{char}_annotations.txt")
@@ -58,7 +51,6 @@ def parse_annotations():
 
 
 def convert_to_yolo_format(img_path, boxes):
-    """Convert bounding boxes to YOLO format (normalized)."""
     try:
         img = Image.open(img_path)
         img_w, img_h = img.size
@@ -70,18 +62,16 @@ def convert_to_yolo_format(img_path, boxes):
     for box in boxes:
         char = box['char']
         if char not in CHAR_TO_ID:
-            continue  # Skip unknown characters
+            continue
             
         class_id = CHAR_TO_ID[char]
         x1, y1, x2, y2 = box['x1'], box['y1'], box['x2'], box['y2']
         
-        # Convert to YOLO format (center x, center y, width, height) - normalized
         x_center = ((x1 + x2) / 2) / img_w
         y_center = ((y1 + y2) / 2) / img_h
         width = (x2 - x1) / img_w
         height = (y2 - y1) / img_h
         
-        # Clamp values to [0, 1]
         x_center = max(0, min(1, x_center))
         y_center = max(0, min(1, y_center))
         width = max(0, min(1, width))
@@ -93,13 +83,10 @@ def convert_to_yolo_format(img_path, boxes):
 
 
 def create_dataset():
-    """Create YOLO dataset structure."""
-    # Create directories
     for split in ['train', 'val']:
         os.makedirs(os.path.join(OUTPUT_PATH, 'images', split), exist_ok=True)
         os.makedirs(os.path.join(OUTPUT_PATH, 'labels', split), exist_ok=True)
     
-    # Parse annotations
     print("Parsing annotations...")
     annotations = parse_annotations()
     print(f"Found {len(annotations)} images with annotations")
@@ -108,39 +95,32 @@ def create_dataset():
         print("No annotations found! Make sure image folders exist in antrenare/")
         return
     
-    # Split into train/val
     img_paths = list(annotations.keys())
     train_imgs, val_imgs = train_test_split(img_paths, test_size=0.2, random_state=42)
     
     print(f"Train images: {len(train_imgs)}, Val images: {len(val_imgs)}")
     
-    # Process images
     for split, img_list in [('train', train_imgs), ('val', val_imgs)]:
         for img_path in img_list:
             if not os.path.exists(img_path):
                 continue
                 
-            # Get YOLO annotations
             yolo_anns = convert_to_yolo_format(img_path, annotations[img_path])
             if yolo_anns is None:
                 continue
             
-            # Copy image
             img_name = os.path.basename(img_path)
-            # Make unique name by prepending folder name
             folder_name = os.path.basename(os.path.dirname(img_path))
             unique_name = f"{folder_name}_{img_name}"
             
             dst_img = os.path.join(OUTPUT_PATH, 'images', split, unique_name)
             shutil.copy2(img_path, dst_img)
             
-            # Save labels
             label_name = os.path.splitext(unique_name)[0] + '.txt'
             dst_label = os.path.join(OUTPUT_PATH, 'labels', split, label_name)
             with open(dst_label, 'w') as f:
                 f.write('\n'.join(yolo_anns))
     
-    # Create dataset.yaml
     yaml_content = f"""# Scooby-Doo Face Detection Dataset
 path: {OUTPUT_PATH}
 train: images/train
