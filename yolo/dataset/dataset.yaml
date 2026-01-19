@@ -1,0 +1,13 @@
+# Scooby-Doo Face Detection Dataset
+path: C:\Users\Taka\Downloads\CAVA-2025-TEMA2\yolo\dataset
+train: images/train
+val: images/val
+
+# Classes
+names:
+  0: fred
+  1: daphne
+  2: shaggy
+  3: velma
+
+nc: 4
