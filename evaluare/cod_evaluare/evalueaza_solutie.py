@@ -175,7 +175,7 @@ def evaluate_results_task2(solution_path,ground_truth_path,character, verbose = 
 verbose = 0
 
 #change this on your machine
-solution_path_root = "../fisiere_solutie/solution/"
+solution_path_root = "../fisiere_solutie/solution_yolo/"
 ground_truth_path_root = "../../validare/"
 
 #task1
